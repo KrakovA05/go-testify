@@ -2,16 +2,12 @@ package main
 
 import (
 	"net/http"
-	"net/http/httptest"
 	"strconv"
 	"strings"
-	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 var cafeList = map[string][]string{
-	"moscow": []string{"Мир кофе", "Сладкоежка", "Кофе и завтраки", "Сытый студент"},
+	"moscow": {"Мир кофе", "Сладкоежка", "Кофе и завтраки", "Сытый студент"},
 }
 
 func mainHandle(w http.ResponseWriter, req *http.Request) {
@@ -30,7 +26,6 @@ func mainHandle(w http.ResponseWriter, req *http.Request) {
 	}
 
 	city := req.URL.Query().Get("city")
-
 	cafe, ok := cafeList[city]
 	if !ok {
 		w.WriteHeader(http.StatusBadRequest)
@@ -43,41 +38,11 @@ func mainHandle(w http.ResponseWriter, req *http.Request) {
 	}
 
 	answer := strings.Join(cafe[:count], ",")
-
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(answer))
 }
 
-func TestMainHandlerWhenCountMoreThanTotal(t *testing.T) {
-	req := httptest.NewRequest("GET", "/cafe?count=10&city=moscow", nil)
-
-	responseRecorder := httptest.NewRecorder()
-	handler := http.HandlerFunc(mainHandle)
-	handler.ServeHTTP(responseRecorder, req)
-
-	assert.Equal(t, http.StatusOK, responseRecorder.Code)
-	assert.NotEmpty(t, responseRecorder.Body.String())
-	assert.Equal(t, "Мир кофе,Сладкоежка,Кофе и завтраки,Сытый студент", responseRecorder.Body.String())
-}
-
-func TestMainHandlerWhenCityIsWrong(t *testing.T) {
-	req := httptest.NewRequest("GET", "/cafe?count=2&city=paris", nil)
-
-	responseRecorder := httptest.NewRecorder()
-	handler := http.HandlerFunc(mainHandle)
-	handler.ServeHTTP(responseRecorder, req)
-
-	assert.Equal(t, http.StatusBadRequest, responseRecorder.Code)
-	assert.Equal(t, "wrong city value", responseRecorder.Body.String())
-}
-
-func TestMainHandlerWhenCountIsCorrect(t *testing.T) {
-	req := httptest.NewRequest("GET", "/cafe?count=2&city=moscow", nil)
-
-	responseRecorder := httptest.NewRecorder()
-	handler := http.HandlerFunc(mainHandle)
-	handler.ServeHTTP(responseRecorder, req)
-
-	assert.Equal(t, http.StatusOK, responseRecorder.Code)
-	assert.Equal(t, "Мир кофе,Сладкоежка", responseRecorder.Body.String())
+func main() {
+	http.HandleFunc("/cafe", mainHandle)
+	http.ListenAndServe(":8080", nil)
 }
